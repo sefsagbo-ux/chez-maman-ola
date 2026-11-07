@@ -48,4 +48,10 @@ class Product extends Model
     {
         return $this->stock <= 0;
     }
+
+    public function reviews(){ return $this->hasMany(Review::class); }
+
+    public function moyenneEtoiles(){
+        return round($this->reviews()->avg('rating') ?? 0, 1);
+    }
 }

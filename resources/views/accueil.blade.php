@@ -1,86 +1,104 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHEZ Maman OLA - Boutique de mèches à Calavi</title>
-    @vite('resources/css/app.css')
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-green-50">
+@extends('layouts.main')
 
-    {{-- HEADER VERT --}}
-    <header class="bg-green-700 text-white p-4 shadow-lg">
-    <div class="max-w-6xl mx-auto flex justify-between items-center">
-        <h1 class="text-2xl font-bold">CHEZ Maman OLA</h1>
-        <span class="text-green-100 hidden md:block">Calavi - La beauté à portée de main</span>
+@section('content')
+
+{{-- 1. HERO AVEC CARROUSEL 5 PHOTOS --}}
+<div class="bg-black text-white">
+    <div class="max-w-7xl mx-auto px-6 py-12 md:py-16 grid md:grid-cols-2 gap-10 items-center">
         
-        <div class="flex items-center gap-2">
-            <a href="/panier" class="bg-green-600 hover:bg-green-800 px-3 py-2 rounded text-sm">🛒 Panier</a>
-            
-            @auth
-                {{-- BOUTON DASHBOARD SELON LE ROLE --}}
-                @if(Auth::user()->role === 'client')
-                    <a href="{{ route('dashboard.client') }}" class="bg-white text-green-700 px-4 py-2 rounded font-bold text-sm">Mon Dashboard</a>
-                @elseif(Auth::user()->role === 'responsable')
-                    <a href="{{ route('dashboard.responsable') }}" class="bg-yellow-400 text-green-900 px-4 py-2 rounded font-bold text-sm">Dashboard Responsable</a>
-                @elseif(Auth::user()->role === 'admin')
-                    <a href="{{ route('dashboard.admin') }}" class="bg-black text-white px-4 py-2 rounded font-bold text-sm">Dashboard Admin</a>
-                @endif
+        <div>
+            <div class="inline-flex border border-zinc-700 rounded-full px-5 py-3 text- uppercase tracking-widest text-zinc-300">
+                ✨ CHEZ MAMAN OLA — LE VRAI SHOP DE MÈCHES À CALAVI
+            </div>
+            <h1 class="text- md:text- font-black leading-[0.9] mt-6">La Qualité<br>Avant<br><span class="text-zinc-500 italic font-light">Tout</span></h1>
+            <p class="text-zinc-400 text- mt-6 max-w-">Brésilienne, Péruvienne, Lace Front, X-pression 100% qualité. Livrées gratuitement depuis Abomey-Calavi.</p>
+            <div class="flex gap-3 mt-8">
+                <a href="#produits" class="bg-white text-black px-6 py-3 rounded-full text- font-bold">VOIR LES MÈCHES</a>
+                <a href="https://wa.me/2290145201908" class="border border-zinc-700 px-6 py-3 rounded-full text-">WHATSAPP</a>
+            </div>
+        </div>
 
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button class="bg-green-800 px-3 py-2 rounded text-sm">Déconnexion</button>
-                </form>
-            @else
-                <a href="/login" class="bg-white text-green-700 px-4 py-2 rounded font-bold">Connexion</a>
-                <a href="/register" class="bg-green-500 text-white px-4 py-2 rounded font-bold">Inscription</a>
-            @endauth
+        {{-- CARROUSEL DROITE --}}
+        <div class="relative h- bg-zinc-900 rounded- overflow-hidden border border-zinc-800">
+            @foreach($produits->take(5) as $key => $p)
+                <div class="mySlide absolute inset-0 {{ $key==0?'block':'hidden' }}">
+                    <img src="{{ asset('storage/'.$p->image) }}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                    <div class="absolute bottom-5 left-5 bg-white text-black px-4 py-2 rounded-full text- font-bold">
+                        {{ $p->nom }} - {{ number_format($p->prix,0,' ',' ') }} FCFA
+                    </div>
+                </div>
+            @endforeach
+            <div class="absolute top-4 left-4 bg-lime-300 text-black text- font-bold px-3 py-1 rounded-full">Bestseller</div>
+            <div class="absolute bottom-5 right-5 flex gap-1.5" id="dots"></div>
+        </div>
+
+    </div>
+</div>
+
+{{-- 2. PRODUITS FOND NOIR --}}
+<section id="produits" class="bg-black text-white py-12">
+    <div class="max-w-7xl mx-auto px-6">
+        <div class="bg-zinc-900 rounded- p-4 border border-zinc-800 flex gap-2">
+            <form method="GET" class="flex flex-1 gap-2">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Rechercher: Brésilienne..." class="flex-1 bg-black border border-zinc-700 rounded-full px-5 py-3 text- text-white">
+                <select name="category_id" class="bg-black border border-zinc-700 rounded-full px-4 py-3 text- text-white">
+                    <option value="">Toutes les catégories</option>
+                    @foreach($categories as $cat)
+                    <option value="{{ $cat->id }}" {{ request('category_id')==$cat->id?'selected':'' }}>{{ $cat->nom }}</option>
+                    @endforeach
+                </select>
+                <button class="bg-white text-black px-6 rounded-full text- font-bold">FILTRER</button>
+            </form>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+            @foreach($produits as $produit)
+            <a href="{{ route('produit.detail', $produit->id) }}" class="bg-zinc-900 rounded- overflow-hidden border border-zinc-800">
+                <div class="h- bg-zinc-800 relative overflow-hidden">
+                    <img src="{{ asset('storage/'.$produit->image) }}" class="w-full h-full object-cover">
+                    <span class="absolute top-3 left-3 bg-lime-300 text-black px-3 py-1 rounded-full text- font-bold">Stock: {{ $produit->stock }}</span>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold">{{ $produit->nom }}</h3>
+                    <p class="text-zinc-500 text-">{{ $produit->category->nom ?? '' }}</p>
+                    <p class="mt-3 font-black text-">{{ number_format($produit->prix,0,' ',' ') }} FCFA</p>
+                </div>
+            </a>
+            @endforeach
         </div>
     </div>
-</header>
+</section>
 
-    <main class="max-w-6xl mx-auto p-6">
-        <h2 class="text-3xl font-bold text-green-800 mb-2">Nos Mèches Disponibles</h2>
-        <p class="text-gray-600 mb-6">Clique sur une mèche pour voir les détails et ajouter au panier</p>
+<script>
+let slideIndex = 0;
+const slides = document.getElementsByClassName("mySlide");
+const dotsBox = document.getElementById("dots");
 
-        {{-- Vérifie si on a des produits --}}
-        @if($produits->isEmpty())
-            <div class="bg-yellow-100 p-6 rounded">
-                <p>Aucun produit trouvé. As-tu bien lancé <code>php artisan db:seed</code> ?</p>
-            </div>
-        @else
-            {{-- Grille des produits --}}
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                @foreach($produits as $produit)
-                    <div class="bg-white rounded-lg shadow p-4 border-t-4 border-green-600">
-                        {{-- Image placeholder --}}
-                        <div class="h-40 bg-green-100 rounded flex items-center justify-center mb-3">
-                            <span class="text-green-700 font-bold">{{ $produit->category->nom }}</span>
-                        </div>
+for(let i=0;i<slides.length;i++){
+    let dot = document.createElement("span");
+    dot.className = "w-6 h-1 rounded-full cursor-pointer " + (i==0?"bg-white":"bg-white/30");
+    dot.onclick = function(){ show(i); };
+    dotsBox.appendChild(dot);
+}
 
-                        <h3 class="font-bold text-lg">{{ $produit->nom }}</h3>
-                        <p class="text-sm text-gray-600">{{ Str::limit($produit->description, 60) }}</p>
-                        
-                        <div class="flex justify-between items-center mt-3">
-                            <span class="text-green-700 font-bold text-xl">{{ number_format($produit->prix, 0, ',', ' ') }} FCFA</span>
-                            
-                            @if($produit->stock > 0)
-                                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Stock: {{ $produit->stock }}</span>
-                            @else
-                                <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Rupture</span>
-                            @endif
-                        </div>
+function show(n){
+    for(let i=0;i<slides.length;i++){
+        slides[i].style.display = "none";
+        dotsBox.children[i].className = "w-6 h-1 rounded-full cursor-pointer bg-white/30";
+    }
+    slides[n].style.display = "block";
+    dotsBox.children[n].className = "w-6 h-1 rounded-full cursor-pointer bg-white";
+    slideIndex = n;
+}
 
-                        <a href="{{ route('produit.detail', $produit->id) }}" 
-                           class="block mt-4 bg-green-600 text-white text-center py-2 rounded hover:bg-green-700">
-                           Voir détails
-                        </a>
-                    </div>
-                @endforeach
-            </div>
-        @endif
-    </main>
+function nextSlide(){
+    slideIndex = (slideIndex+1) % slides.length;
+    show(slideIndex);
+}
 
-</body>
-</html>
+show(0);
+setInterval(nextSlide, 3000);
+</script>
+
+@endsection

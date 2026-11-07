@@ -11,48 +11,50 @@ use Illuminate\Http\Request;
 class OrderController extends Controller
 {
     // Quand le client clique sur Commander
-    public function commander()
+    public function commander(Request $request)
     {
-        $userId = Auth::id();
-        $paniers = Cart::with('product')->where('user_id', $userId)->get();
-
-        if($paniers->isEmpty()){
-            return redirect()->route('accueil')->with('error', 'Panier vide');
-        }
-
-        // Calcul total
-        $total = 0;
-        foreach($paniers as $item){
-            $total += $item->product->prix * $item->quantite;
-        }
-
-        // Créer la commande
-        $order = Order::create([
-            'user_id' => $userId,
-            'total' => $total,
-            'statut' => 'en_attente',
-            'adresse_livraison' => 'Calavi',
-            'telephone' => '0145201908'
+        $request->validate([
+            'payment_method' => 'required|in:mtn,moov,cash',
+            'phone_momo' => 'required',
+            'delivery_address' => 'required',
         ]);
 
-        // Copier chaque ligne du panier dans order_items + diminuer stock
-        foreach($paniers as $item){
-            OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $item->product_id,
-                'quantite' => $item->quantite,
-                'prix_unitaire' => $item->product->prix
-            ]);
+        $paniers = \App\Models\Cart::where('user_id', auth()->id())->with('produit')->get();
+        if($paniers->isEmpty()) return back();
 
-            // Diminue le stock
-            $item->product->stock -= $item->quantite;
-            $item->product->save();
+        $total = $paniers->sum(fn($i)=> $i->produit->prix * $i->quantite);
+
+        $order = \App\Models\Order::create([
+            'user_id' => auth()->id(),
+            'total' => $total,
+            'statut' => 'en_attente',
+            'payment_method' => $request->payment_method,
+            'payment_status' => $request->payment_method == 'cash' ? 'en_attente' : 'paye',
+            'delivery_address' => $request->delivery_address,
+            'phone_momo' => $request->phone_momo,
+        ]);
+
+        foreach($paniers as $item){
+            $order->produits()->attach($item->produit->id, ['quantite' => $item->quantite, 'prix_unitaire' => $item->produit->prix]);
+            $item->produit->decrement('stock', $item->quantite);
         }
 
-        // Vide le panier
-        Cart::where('user_id', $userId)->delete();
+        \App\Models\Cart::where('user_id', auth()->id())->delete();
 
-        return redirect()->route('dashboard.client')->with('success', 'Commande passée !');
+        return redirect()->route('commande.confirmation', $order->id);
+    }
+
+    public function checkout()
+    {
+        $paniers = \App\Models\Cart::where('user_id', auth()->id())->with('produit')->get();
+        if($paniers->isEmpty()) return redirect('/');
+        return view('checkout', compact('paniers'));
+    }
+
+    public function confirmation($id)
+    {
+        $order = \App\Models\Order::with('produits')->findOrFail($id);
+        return view('commande-confirmation', compact('order'));
     }
 
     // Dashboard client : voir ses commandes

@@ -12,14 +12,23 @@ class ProductController extends Controller
      * Affiche la page d'accueil avec toutes les mèches
      * C'est la vitrine de CHEZ Maman OLA
      */
-    public function index()
+    public function index(Request $request)
     {
-        // On récupère tous les produits avec leur catégorie
-        // latest() = les plus récents en premier
-        $produits = Product::with('category')->latest()->get();
-        $categories = Category::all();
+        $query = Product::with('category');
+    
+    // Recherche par nom
+        if($request->search){
+            $query->where('nom', 'like', '%'.$request->search.'%');
+        }
+    
+    // Filtre par catégorie
+        if($request->category_id){
+            $query->where('category_id', $request->category_id);
+        }
 
-        // On envoie les données à la vue
+        $produits = $query->get();
+        $categories = \App\Models\Category::all();
+
         return view('accueil', compact('produits', 'categories'));
     }
 
